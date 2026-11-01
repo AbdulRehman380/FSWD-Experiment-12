@@ -1,3 +1,4 @@
+
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -9,11 +10,9 @@ const Contact = require("./Contact");
 dotenv.config();
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 5107;
 
-// Serve React Frontend
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // CREATE Project
@@ -26,10 +25,11 @@ app.post("/api/projects", async (req, res) => {
     }
 });
 
-// READ Projects
+// READ All Projects
 app.get("/api/projects", async (req, res) => {
     try {
-        res.json(await Project.find());
+        const projects = await Project.find();
+        res.json(projects);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -39,7 +39,7 @@ app.get("/api/projects", async (req, res) => {
 app.get("/api/projects/:id", async (req, res) => {
     try {
         const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).json({ message: "Not found" });
+        if (!project) return res.status(404).json({ message: "Project not found" });
         res.json(project);
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -52,7 +52,7 @@ app.put("/api/projects/:id", async (req, res) => {
         const project = await Project.findByIdAndUpdate(
             req.params.id, req.body, { new: true, runValidators: true }
         );
-        if (!project) return res.status(404).json({ message: "Not found" });
+        if (!project) return res.status(404).json({ message: "Project not found" });
         res.json(project);
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -63,7 +63,7 @@ app.put("/api/projects/:id", async (req, res) => {
 app.delete("/api/projects/:id", async (req, res) => {
     try {
         const project = await Project.findByIdAndDelete(req.params.id);
-        if (!project) return res.status(404).json({ message: "Not found" });
+        if (!project) return res.status(404).json({ message: "Project not found" });
         res.json({ message: "Project deleted successfully" });
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -83,28 +83,38 @@ app.post("/api/contact", async (req, res) => {
 // READ Contacts
 app.get("/api/messages", async (req, res) => {
     try {
-        res.json(await Contact.find().sort({ createdAt: -1 }));
+        const messages = await Contact.find().sort({ createdAt: -1 });
+        res.json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// START SERVER
-async function startServer() {
-    if (!process.env.MONGO_URI) {
-        console.error("MongoDB is not configured. Copy .env.example to .env and set MONGO_URI.");
-        process.exit(1);
-    }
+// Homepage
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
+// 404 Handler
+app.use((req, res) => {
+    res.status(404).json({ message: "Route not found" });
+});
+
+// Connect MongoDB and Start Server
+async function startServer() {
     try {
+        if (!process.env.MONGO_URI) {
+            throw new Error("MONGO_URI is missing in .env");
+        }
+
         await mongoose.connect(process.env.MONGO_URI);
         console.log("MongoDB Connected");
 
-        app.listen(PORT, () => {
-            console.log("Server running on http://localhost:" + PORT);
+        app.listen(PORT, "0.0.0.0", () => {
+            console.log(`Server running on port ${PORT}`);
         });
     } catch (err) {
-        console.error("MongoDB Error:", err.message);
+        console.error("Server Error:", err.message);
         process.exit(1);
     }
 }

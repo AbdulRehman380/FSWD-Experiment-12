@@ -1,4 +1,3 @@
-// Contact Schema
 
 const mongoose = require("mongoose");
 

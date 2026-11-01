@@ -1,4 +1,3 @@
-// Project Schema
 
 const mongoose = require("mongoose");
 
